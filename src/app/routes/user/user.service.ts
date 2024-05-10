@@ -2,6 +2,7 @@ import prisma from "../../../prisma/prisma-client";
 import {TUser} from "./user.model";
 import {ApiError} from "../../middleware/errorHandler";
 import bcrypt from "bcrypt";
+import {tokenStore} from "../../stores/tokens";
 
 export const getByLogin = async (login?: string) => {
     try {
@@ -22,6 +23,7 @@ export const add = async (user: TUser) => {
             throw ApiError.BadRequest(err)
         })
 }
+
 export const edit = ({id, ...rest}: TUser) =>
     prisma.user.update({
         where: {id},

@@ -1,6 +1,6 @@
-import {Router, Request} from "express";
+import {Request, Router} from "express";
 import {TUser} from "./user.model";
-import {getByLogin, add, edit, deleteByLogin} from './user.service'
+import {add, deleteByLogin, edit, getByLogin} from './user.service'
 
 const router = Router()
 

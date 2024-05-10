@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt'
 import {ApiError} from "../../middleware/errorHandler";
 import generator from 'generate-password'
 import {sendMail} from "../../mailer/nodemailer";
+import {tokenStore} from "../../stores/tokens";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET)
 
@@ -72,6 +73,21 @@ export const updateAccessToken = async (refreshToken: string | Uint8Array) => {
     if (!userData)
         throw ApiError.Unauthorized('Incorrect token')
     return generateAccessToken(userData)
+}
+
+export const validateIdForTokens = (id: string) => {
+    const tokens = tokenStore.get(id)
+    if (!tokens)
+        throw ApiError.BadRequest('Incorrect id')
+
+    tokenStore.delete(id)
+    return tokens
+}
+
+export const saveTokens = (refresh: string, access: string) => {
+    const id = String(tokenStore.size)
+    tokenStore.set(id, {refresh, access})
+    return id
 }
 
 const getPayloadRefresh = async (refreshToken: string | Uint8Array) => {
