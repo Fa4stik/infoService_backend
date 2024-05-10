@@ -3,6 +3,8 @@ import {TUserData, TUserLogin} from "./auth.model";
 import prisma from "../../../prisma/prisma-client";
 import bcrypt from 'bcrypt'
 import {ApiError} from "../../middleware/errorHandler";
+import generator from 'generate-password'
+import {sendMail} from "../../mailer/nodemailer";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET)
 
@@ -41,6 +43,28 @@ export const logout = async (refreshToken: string | Uint8Array) => {
     if (!userData)
         throw ApiError.Unauthorized('Incorrect data token')
     return prisma.token.delete({where: {userId: userData.id}})
+}
+
+export const resetPassword = async (email: string) => {
+    const user = await prisma.user.findUnique({where: {email}})
+    if (!user)
+        throw ApiError.BadRequest('Email do not find')
+
+    const {id, ...userData} = user
+    const newPassword = generator
+        .generate({length: 12, numbers: true, symbols: true})
+    const hashPassword = await bcrypt.hash(newPassword, 2)
+    const updated = await prisma.user.update({
+        where: {email},
+        data: {
+            ...userData,
+            password: hashPassword
+        }
+    })
+
+    await sendMail('stepan.sharifulin@mail.ru', newPassword)
+
+    return {updated, newPassword}
 }
 
 export const updateAccessToken = async (refreshToken: string | Uint8Array) => {

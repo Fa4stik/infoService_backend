@@ -1,6 +1,6 @@
 import {Router, Request} from "express";
-import {TUserLogin} from "./auth.model";
-import {login, logout, updateAccessToken} from "./auth.service";
+import {TUserData, TUserLogin} from "./auth.model";
+import {login, logout, resetPassword, updateAccessToken} from "./auth.service";
 
 const router = Router()
 
@@ -20,6 +20,15 @@ router.post('/refresh', async (req, res, next) => {
         const refreshToken = req.cookies.refreshToken
         const accessToken = await updateAccessToken(refreshToken)
         res.json({accessToken})
+    } catch (e) {
+        next(e)
+    }
+})
+
+router.put('/reset', async (req: Request<{}, {}, Pick<TUserData, 'email'>>, res, next) => {
+    try {
+        const updatedUser = await resetPassword(req.body.email)
+        res.status(204)
     } catch (e) {
         next(e)
     }
