@@ -1,6 +1,8 @@
 import {Router, Request} from "express";
 import {TUserData, TUserLogin} from "./auth.model";
-import {login, logout, resetPassword, updateAccessToken} from "./auth.service";
+import {getPayloadAccess, login, logout, resetPassword, updateAccessToken} from "./auth.service";
+import {ApiError} from "../../middleware/errorHandler";
+import {authHandler} from "../../middleware/authHandler";
 
 const router = Router()
 
@@ -20,6 +22,14 @@ router.post('/refresh', async (req, res, next) => {
         const refreshToken = req.cookies.refreshToken
         const accessToken = await updateAccessToken(refreshToken)
         res.json({accessToken})
+    } catch (e) {
+        next(e)
+    }
+})
+
+router.post('/is', authHandler, async (req, res, next) => {
+    try {
+        res.status(204)
     } catch (e) {
         next(e)
     }
