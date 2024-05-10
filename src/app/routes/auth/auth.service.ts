@@ -79,7 +79,7 @@ export const getPayloadAccess = async (accessToken: string | Uint8Array) => {
 const generateAccessToken = async (user: TUserData) =>
     new jose.SignJWT(user)
         .setProtectedHeader({alg: 'HS256'})
-        .setExpirationTime('15m')
+        .setExpirationTime('15d')
         .sign(secret)
 
 const generateRefreshToken = async (user: TUserData) =>

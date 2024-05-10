@@ -13,7 +13,8 @@
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "noImplicitAny": false
   },
   "include": [
     "src/**/*"
