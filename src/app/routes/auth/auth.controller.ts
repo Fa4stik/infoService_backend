@@ -1,7 +1,6 @@
-import {Router, Request} from "express";
+import {Request, Router} from "express";
 import {TUserData, TUserLogin} from "./auth.model";
-import {getPayloadAccess, login, logout, resetPassword, updateAccessToken} from "./auth.service";
-import {ApiError} from "../../middleware/errorHandler";
+import {login, logout, resetPassword, saveTokens, updateAccessToken, validateIdForTokens} from "./auth.service";
 import {authHandler} from "../../middleware/authHandler";
 
 const router = Router()
@@ -34,6 +33,31 @@ router.post('/is', authHandler, async (req, res, next) => {
         next(e)
     }
 })
+
+router.post('/migrate', authHandler, async (req, res, next) => {
+    try {
+        const refreshToken = req.cookies.refreshToken
+        const authHeader = req.headers['authorization']
+        const accessToken = authHeader && authHeader.split(' ')[1]
+        const id = saveTokens(refreshToken, accessToken ?? '')
+        res.json({id})
+    } catch (e) {
+        next(e)
+    }
+})
+
+router.post('/tokens', async (req: Request<{}, {}, {}, {id: string}>, res, next) => {
+    try {
+        const {refresh, access} =
+            validateIdForTokens(req.query.id)
+        res.cookie('refreshToken', refresh, {httpOnly: true, maxAge: 30*24*60*60*1000})
+        res.header('authorization', 'Bearer ' + access)
+        res.json({message: 'success'})
+    } catch (e) {
+        next(e)
+    }
+})
+
 
 router.put('/reset', async (req: Request<{}, {}, Pick<TUserData, 'email'>>, res, next) => {
     try {
