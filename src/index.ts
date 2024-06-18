@@ -14,10 +14,15 @@ const app = express()
 
 app.use(morgan('combined'))
 app.use(cookieParser())
-app.use(cors())
+const corsAllowList = process.env.ORIGIN_LIST?.split(',') ?? []
+app.use(cors({
+    credentials: true,
+    origin: corsAllowList,
+}))
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json())
 
-app.use(express.static(resolve(__dirname, 'assets')))
+app.use('/api/v1/gallery', express.static(resolve(__dirname, 'assets')))
 
 app.use(routes)
 app.use(errorHandler)
@@ -25,4 +30,5 @@ app.use(errorHandler)
 const port = process.env.PORT ?? 5000
 app.listen(port, () => {
     console.log('app started for port', port)
+    console.log('origin list', corsAllowList)
 })

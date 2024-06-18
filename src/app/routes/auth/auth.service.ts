@@ -6,12 +6,20 @@ import {ApiError} from "../../middleware/errorHandler";
 import generator from 'generate-password'
 import {sendMail} from "../../mailer/nodemailer";
 import {tokenStore} from "../../stores/tokens";
+import {randomUUID} from "node:crypto";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET)
 
+export const checkLink = async (link: string) => prisma
+    .resetLink
+    .findUniqueOrThrow({where: {id: link}})
+    .catch((err) => {
+        throw ApiError.BadRequest('Link not found')
+    })
+
 export const login = async (userLogin: TUserLogin) => {
     const user = await prisma.user
-        .findUnique({where: {login: userLogin.login}})
+        .findUnique({where: {email: userLogin.email}})
 
     if (!user)
         throw ApiError.BadRequest('User not found')
@@ -43,29 +51,47 @@ export const logout = async (refreshToken: string | Uint8Array) => {
     const userData = await getPayloadRefresh(refreshToken)
     if (!userData)
         throw ApiError.Unauthorized('Incorrect data token')
-    return prisma.token.delete({where: {userId: userData.id}})
+    return prisma
+        .token
+        .delete({where: {userId: userData.id}})
 }
 
-export const resetPassword = async (email: string) => {
+export const generateLink = async (email: string, origin: string) => {
     const user = await prisma.user.findUnique({where: {email}})
     if (!user)
         throw ApiError.BadRequest('Email do not find')
 
     const {id, ...userData} = user
-    const newPassword = generator
-        .generate({length: 12, numbers: true, symbols: true})
-    const hashPassword = await bcrypt.hash(newPassword, 2)
-    const updated = await prisma.user.update({
-        where: {email},
-        data: {
-            ...userData,
-            password: hashPassword
-        }
+    const resetLink = await prisma.resetLink.upsert({
+        where: {userId: id},
+        update: {},
+        create: {userId: id}
     })
 
-    await sendMail('stepan.sharifulin@mail.ru', newPassword)
+    await sendMail(email, 'Установка пароля', `${origin}/login?reset=${resetLink.id}`)
 
-    return {updated, newPassword}
+    return resetLink
+}
+
+export const resetPassword = async (link: string, password: string) => {
+    const dbLink = await prisma
+        .resetLink
+        .findUnique({where: {id: link}})
+    if (!dbLink)
+        throw ApiError.BadRequest('Incorrect link')
+
+    await prisma
+        .resetLink
+        .delete({where: {id: link}})
+
+    const hashPass = await bcrypt.hash(password, 2)
+
+    return prisma
+        .user
+        .update({
+            where: {id: dbLink.userId},
+            data: {password: hashPass}
+        })
 }
 
 export const updateAccessToken = async (refreshToken: string | Uint8Array) => {
@@ -79,13 +105,12 @@ export const validateIdForTokens = (id: string) => {
     const tokens = tokenStore.get(id)
     if (!tokens)
         throw ApiError.BadRequest('Incorrect id')
-
     tokenStore.delete(id)
     return tokens
 }
 
 export const saveTokens = (refresh: string, access: string) => {
-    const id = String(tokenStore.size)
+    const id = crypto.randomUUID()
     tokenStore.set(id, {refresh, access})
     return id
 }

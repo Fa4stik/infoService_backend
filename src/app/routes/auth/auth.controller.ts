@@ -1,9 +1,27 @@
 import {Request, Router} from "express";
 import {TUserData, TUserLogin} from "./auth.model";
-import {login, logout, resetPassword, saveTokens, updateAccessToken, validateIdForTokens} from "./auth.service";
-import {authHandler} from "../../middleware/authHandler";
+import {
+    generateLink,
+    login,
+    logout,
+    resetPassword,
+    saveTokens,
+    updateAccessToken,
+    validateIdForTokens,
+    checkLink
+} from "./auth.service";
+import {adminHandler, authHandler} from "../../middleware/authHandler";
 
 const router = Router()
+
+router.get('/check', async (req: Request<{}, {}, {}, {link: string}>, res, next) => {
+    try {
+        await checkLink(req.query.link)
+        res.status(204).json({})
+    } catch (e) {
+        next(e)
+    }
+})
 
 router.post('/login', async (req: Request<{}, {}, TUserLogin>, res, next) => {
     try {
@@ -28,7 +46,15 @@ router.post('/refresh', async (req, res, next) => {
 
 router.post('/is', authHandler, async (req, res, next) => {
     try {
-        res.status(204)
+        res.status(204).json({success: true})
+    } catch (e) {
+        next(e)
+    }
+})
+
+router.post('/isAdmin', adminHandler, async (req, res, next) => {
+    try {
+        res.status(204).json({})
     } catch (e) {
         next(e)
     }
@@ -52,17 +78,26 @@ router.post('/tokens', async (req: Request<{}, {}, {}, {id: string}>, res, next)
             validateIdForTokens(req.query.id)
         res.cookie('refreshToken', refresh, {httpOnly: true, maxAge: 30*24*60*60*1000})
         res.header('authorization', 'Bearer ' + access)
-        res.json({message: 'success'})
+        res.json({accessToken: access})
     } catch (e) {
         next(e)
     }
 })
 
-
-router.put('/reset', async (req: Request<{}, {}, Pick<TUserData, 'email'>>, res, next) => {
+router.post('/reset', async (req: Request<{}, {}, Pick<TUserData, 'email'>>, res, next) => {
     try {
-        const updatedUser = await resetPassword(req.body.email)
-        res.status(204)
+        const link =
+            await generateLink(req.body.email, req.get('origin') ?? req.get('host') ?? '')
+        res.status(204).json(link)
+    } catch (e) {
+        next(e)
+    }
+})
+
+router.put('/reset', async (req: Request<{}, {}, Pick<TUserLogin, 'password'>, {link: string}>, res, next) => {
+    try {
+        const updateUser = await resetPassword(req.query.link, req.body.password)
+        res.status(204).json(updateUser)
     } catch (e) {
         next(e)
     }

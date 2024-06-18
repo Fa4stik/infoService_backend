@@ -2,6 +2,12 @@ import prisma from "../../../prisma/prisma-client";
 import {TProjectSection} from "./projectSection.model";
 import {ApiError} from "../../middleware/errorHandler";
 
+export const getByProjectId = (id: string) =>
+    prisma.projectSection.findMany({
+        where: {projects: {some: {id}}},
+        select: {id: true, name: true}
+    })
+
 export const getAll = () =>
     prisma.projectSection.findMany({where: {}})
         .catch(err => {

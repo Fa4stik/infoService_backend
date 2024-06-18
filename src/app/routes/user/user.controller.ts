@@ -1,8 +1,17 @@
 import {Request, Router} from "express";
 import {TUser} from "./user.model";
-import {add, deleteByLogin, edit, getByLogin} from './user.service'
+import {add, deleteByLogin, edit, getByLogin, getAll} from './user.service'
 
 const router = Router()
+
+router.get('/getAll', async (req, res, next) => {
+    try {
+        const users = await getAll()
+        res.json(users)
+    } catch (e) {
+        next(e)
+    }
+})
 
 router.get('/get', async (req: Request<{}, {}, {}, Pick<TUser, 'login'>>, res, next) => {
     try {
@@ -33,8 +42,8 @@ router.put('/edit', async (req: Request<{}, {}, TUser>, res, next) => {
 
 router.delete('/delete', async (req: Request<{}, {}, {}, Pick<TUser, 'login'>>, res, next) => {
     try {
-        const deleteUser = deleteByLogin(req.query.login)
-        res.status(204).json(deleteUser)
+        const userDelete = await deleteByLogin(req.query.login)
+        res.status(204).json(userDelete)
     } catch (e) {
         next(e)
     }

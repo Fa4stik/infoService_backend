@@ -9,7 +9,16 @@ export const getById = (id?: string) =>
         })
 
 export const getAll = () =>
-    prisma.project.findMany()
+    prisma.project.findMany({
+        select: {
+            id: true,
+            name: true,
+            logoSrc: true,
+            shortDesc: true,
+            linkSsl: true,
+            linkNoSsl: true,
+            projectSectionIDs: true,
+        }})
         .catch(err => {
             throw err
         })

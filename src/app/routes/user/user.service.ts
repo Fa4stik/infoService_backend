@@ -2,7 +2,16 @@ import prisma from "../../../prisma/prisma-client";
 import {TUser} from "./user.model";
 import {ApiError} from "../../middleware/errorHandler";
 import bcrypt from "bcrypt";
-import {tokenStore} from "../../stores/tokens";
+
+export const getAll = () =>
+    prisma.user.findMany({
+        select: {
+            id: true,
+            login: true,
+            email: true,
+            projectIDs: true
+        }
+    })
 
 export const getByLogin = async (login?: string) => {
     try {
@@ -24,16 +33,28 @@ export const add = async (user: TUser) => {
         })
 }
 
-export const edit = ({id, ...rest}: TUser) =>
-    prisma.user.update({
-        where: {id},
-        data: rest
-    })
-    .catch(err => {
-        throw ApiError.BadRequest(err)
-    })
-export const deleteByLogin = (login?: string) =>
-    prisma.user.delete({where: {login}})
+export const edit = async ({id, ...rest}: TUser) => {
+    const updateObj: Omit<TUser, 'id'> = {...rest}
+
+    if ('password' in rest)
+        updateObj.password = await bcrypt.hash(rest.password, 2)
+
+
+    return prisma.user.update({
+            where: {id},
+            data: updateObj
+        })
         .catch(err => {
             throw ApiError.BadRequest(err)
         })
+}
+
+export const deleteByLogin = (login?: string) => {
+    const tokenDeleteMany = prisma.token.deleteMany({
+        where: {user: {login}}
+    })
+    const userDelete = prisma.user
+        .delete({where: {login}})
+
+    return prisma.$transaction([tokenDeleteMany, userDelete])
+}

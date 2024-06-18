@@ -1,8 +1,18 @@
 import {Router, Request} from "express";
-import {getAll, edit, add, deleteById} from './projectSection.service'
+import {getAll, edit, add, deleteById, getByProjectId} from './projectSection.service'
 import {TProjectSection} from "./projectSection.model";
+import {TProject} from "../project/project.model";
 
 const router = Router()
+
+router.get('/getByProjectId', async (req: Request<{}, {}, {}, Pick<TProject, 'id'>>, res, next) => {
+    try {
+        const sections = await getByProjectId(req.query.id ?? '')
+        res.json(sections)
+    } catch (e) {
+        next(e)
+    }
+})
 
 router.get('/getAll', async (req, res, next) => {
     try {

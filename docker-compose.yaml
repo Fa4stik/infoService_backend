@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  web:
+    image: fa4stik/inforamtion_sevice_web
+    ports:
+      - "80:80"
+
+  backend:
+    image: fa4stik/info_service_back
+    command: sh -c "sleep 10 && /app/scripts/start_contaier.sh"
+    depends_on:
+      - database
+    env_file:
+      - '.env'
+    ports:
+      - "5000:5000"
+    volumes:
+      - "./assets:/app/src/assets"
+
+  database:
+    image: 'bitnami/mongodb:latest'
+    env_file:
+      - ".env"
+    ports:
+      - '27017:27017'
+    volumes:
+      - './mongo-db:/bitnami/mongodb'
+
+#volumes:
+#  assets:
+#  mongo-db:

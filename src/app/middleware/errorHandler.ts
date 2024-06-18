@@ -14,8 +14,14 @@ export class ApiError extends Error {
         return new ApiError(422, message)
     }
 
-    static Unauthorized(message: any) {
-        return new ApiError(401, message)
+    /**
+     * Check authentication query
+     * @param message reason for cancel
+     * @param code 401 - invalid access token, 403 - invalid other data for authentication
+     * @constructor
+     */
+    static Unauthorized(message: any, code: 401 | 403 = 403) {
+        return new ApiError(code, message)
     }
 }
 
